@@ -1,0 +1,15 @@
+Power supply:
+	Using pin 2 for 5V and port 6 for GND
+	Using port 1 for 3.3V button power
+
+SenseAir k-30 using
+	Supply by 5V
+	k-30 has ports GND VDD RX TX
+	Using UART1 by file /dev/ttyS1
+	TX is on 38 pin RX is on 40 pin
+
+SHT15 using
+	Supply by 5V with voltage regulator
+	On module pin 1 is SCK pin 4 is DATA
+	Using pin 16 (4 wPi) for SCK
+	Using pin 18 (5 wPi) for DATA

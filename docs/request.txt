@@ -1,0 +1,2 @@
+To send request use address http://healthyair.ru/data_listener.php
+Must post email, passwd, stname, t, rh, co2, datetime.
