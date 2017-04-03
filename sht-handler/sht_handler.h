@@ -3,8 +3,6 @@
 
 #include <stdint.h>
 
-// Enable CRC checking
-#define CRC_ENA
 
 // Enable ('1') or disable ('0') internal pullup on DATA line
 // Commenting out this #define saves code space but leaves internal pullup
@@ -41,29 +39,29 @@ const uint8_t S_Meas_Rdy   = 4;  // Measurement ready
 class sht_handler
 {
   private:
-    uint8_t _pinData;
-    uint8_t _pinClock;
+    uint8_t data_pin;
+    uint8_t clock_pin;
     uint16_t *_presult;
     uint8_t _stat_reg;
     uint8_t _crc;
-    uint8_t getResult(uint16_t *result);
-    uint8_t putByte(uint8_t value);
-    uint8_t getByte(bool ack);
+    uint8_t get_result(uint16_t *result);
+    uint8_t put_byte(uint8_t value);
+    uint8_t get_byte(bool ack);
     void startTransmission(void);
     void resetConnection(void);
-    void calcCRC(uint8_t value, uint8_t *crc);
+    void calc_crc(uint8_t value, uint8_t *crc);
     uint8_t bitrev(uint8_t value);
 
   public:
-    sht_handler(uint8_t dataPin, uint8_t clockPin);
+    sht_handler(uint8_t data_pin, uint8_t clock_pin);
     uint8_t measure(float *temp, float *humi);   
     uint8_t meas(uint8_t cmd, uint16_t *result, bool block);
     uint8_t measRdy(void);
     uint8_t writeSR(uint8_t value);
     uint8_t readSR(uint8_t *result);
     uint8_t reset(void);
-    float calcTemp(uint16_t rawData);
-    float calcHumi(uint16_t rawData, float temp);
+    float calc_t(uint16_t raw_data);
+    float calc_rh(uint16_t raw_data, float temp);
 };
 
 #endif 

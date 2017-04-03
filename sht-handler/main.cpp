@@ -13,8 +13,7 @@ main()
 {
 	const uint8_t data_pin  =  5, clock_pin =  4;
 
-	float temperature;
-	float humidity;
+	float t, rh;
 	
 	sht_handler sht = sht_handler(data_pin, clock_pin);
 	if (wiringPiSetup() != 0)
@@ -22,8 +21,8 @@ main()
 	
 	
 	while (1) {
-		sht.measure(&temperature, &humidity);
-		printf("%f %f\n", temperature, humidity);
+		sht.measure(&t, &rh);
+		printf("%f %f\n", t, rh);
 		fflush(stdout);
 		delay(1000);
 	}

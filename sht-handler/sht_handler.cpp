@@ -70,20 +70,20 @@ const bool ACK    = true;
  * Constructors
  ******************************************************************************/
 
-sht_handler::sht_handler(uint8_t dataPin, uint8_t clockPin) {
+sht_handler::sht_handler(uint8_t data_pin, uint8_t clock_pin) {
   // Initialize private storage for library functions
-  _pinData = dataPin;
-  _pinClock = clockPin;
-  _presult = NULL;                  // No pending measurement
-  _stat_reg = 0x00;                 // Sensor status register default state
+  this->data_pin = data_pin;
+  this->clock_pin = clock_pin;
+  this->_presult = NULL;                  // No pending measurement
+  this->_stat_reg = 0x00;                 // Sensor status register default state
 
   // Initialize CLK signal direction
   // Note: All functions exit with CLK low and DAT in input mode
-//  pinMode(_pinClock, OUTPUT);
+//  pinMode(clock_pin, OUTPUT);
 
   // Return sensor to default state
   resetConnection();                // Reset communication link with sensor
-  putByte(SOFT_RESET);              // Send soft reset command
+  put_byte(SOFT_RESET);              // Send soft reset command
 }
 
 
@@ -93,35 +93,31 @@ sht_handler::sht_handler(uint8_t dataPin, uint8_t clockPin) {
 
 // All-in-one (blocking): Returns temperature, humidity, & dewpoint
 uint8_t sht_handler::measure(float *temp, float *humi) {
-  uint16_t rawData;
+  uint16_t raw_data;
   uint8_t error;
-  pinMode(_pinData, OUTPUT);
-  pinMode(_pinClock, OUTPUT);
-  if ((error = measTemp(&rawData)))
+  pinMode(data_pin, OUTPUT);
+  pinMode(clock_pin, OUTPUT);
+  if ((error = measTemp(&raw_data)))
     return error;
-  *temp = calcTemp(rawData);
-  if ((error = measHumi(&rawData)))
+  *temp = calc_t(raw_data);
+  if ((error = measHumi(&raw_data)))
     return error;
-  *humi = calcHumi(rawData, *temp);
+  *humi = calc_rh(raw_data, *temp);
   return 0 ;
 }
 
 // Initiate measurement.  If blocking, wait for result
 uint8_t sht_handler::meas(uint8_t cmd, uint16_t *result, bool block) {
   uint8_t error, i;
-#ifdef CRC_ENA
   _crc = bitrev(_stat_reg & SR_MASK);  // Initialize CRC calculation
-#endif
   startTransmission();
   if (cmd == TEMP)
     cmd = MEAS_TEMP;
   else
     cmd = MEAS_HUMI;
-  if ((error = putByte(cmd)))
+  if ((error = put_byte(cmd)))
     return error;
-#ifdef CRC_ENA
-  calcCRC(cmd, &_crc);              // Include command byte in CRC calculation
-#endif
+  calc_crc(cmd, &_crc);              // Include command byte in CRC calculation
   // If non-blocking, save pointer to result and return
   if (!block) {
     _presult = result;
@@ -129,13 +125,13 @@ uint8_t sht_handler::meas(uint8_t cmd, uint16_t *result, bool block) {
   }
   // Otherwise, wait for measurement to complete with 720ms timeout
   i = 240;
-  while (digitalRead(_pinData)) {
+  while (digitalRead(data_pin)) {
     i--;
     if (i == 0)
       return S_Err_TO;              // Error: Timeout
     delay(3);
   }
-  error = getResult(result);
+  error = get_result(result);
   return error;
 }
 
@@ -145,9 +141,9 @@ uint8_t sht_handler::measRdy(void) {
   uint8_t error = 0;
   if (_presult == NULL)             // Already done?
     return S_Meas_Rdy;
-  if (digitalRead(_pinData) != 0)   // Measurement ready yet?
+  if (digitalRead(data_pin) != 0)   // Measurement ready yet?
     return 0;
-  error = getResult(_presult);
+  error = get_result(_presult);
   _presult = NULL;
   if (error)
     return error;                   // Only possible error is S_Err_CRC
@@ -155,25 +151,20 @@ uint8_t sht_handler::measRdy(void) {
 }
 
 // Get measurement result from sensor (plus CRC, if enabled)
-uint8_t sht_handler::getResult(uint16_t *result) {
+uint8_t sht_handler::get_result(uint16_t *result) {
   uint8_t val;
-#ifdef CRC_ENA
-  val = getByte(ACK);
-  calcCRC(val, &_crc);
+  val = get_byte(ACK);
+  calc_crc(val, &_crc);
   *result = val;
-  val = getByte(ACK);
-  calcCRC(val, &_crc);
+  val = get_byte(ACK);
+  calc_crc(val, &_crc);
   *result = (*result << 8) | val;
-  val = getByte(noACK);
+  val = get_byte(noACK);
   val = bitrev(val);
   if (val != _crc) {
     *result = 0xFFFF;
     return S_Err_CRC;
   }
-#else
-  *result = getByte(ACK);
-  *result = (*result << 8) | getByte(noACK);
-#endif
   return 0;
 }
 
@@ -183,36 +174,30 @@ uint8_t sht_handler::writeSR(uint8_t value) {
   value &= SR_MASK;                 // Mask off unwritable bits
   _stat_reg = value;                // Save local copy
   startTransmission();
-  if ((error = putByte(STAT_REG_W)))
+  if ((error = put_byte(STAT_REG_W)))
     return error;
-  return putByte(value);
+  return put_byte(value);
 }
 
 // Read status register
 uint8_t sht_handler::readSR(uint8_t *result) {
   uint8_t val;
   uint8_t error = 0;
-#ifdef CRC_ENA
   _crc = bitrev(_stat_reg & SR_MASK);  // Initialize CRC calculation
-#endif
   startTransmission();
-  if ((error = putByte(STAT_REG_R))) {
+  if ((error = put_byte(STAT_REG_R))) {
     *result = 0xFF;
     return error;
   }
-#ifdef CRC_ENA
-  calcCRC(STAT_REG_R, &_crc);       // Include command byte in CRC calculation
-  *result = getByte(ACK);
-  calcCRC(*result, &_crc);
-  val = getByte(noACK);
+  calc_crc(STAT_REG_R, &_crc);       // Include command byte in CRC calculation
+  *result = get_byte(ACK);
+  calc_crc(*result, &_crc);
+  val = get_byte(noACK);
   val = bitrev(val);
   if (val != _crc) {
     *result = 0xFF;
     error = S_Err_CRC;
   }
-#else
-  *result = getByte(noACK);
-#endif
   return error;
 }
 
@@ -221,7 +206,7 @@ uint8_t sht_handler::readSR(uint8_t *result) {
 uint8_t sht_handler::reset(void) {
   _stat_reg = 0x00;                 // Sensor status register default state
   resetConnection();                // Reset communication link with sensor
-  return putByte(SOFT_RESET);       // Send soft reset command & return status
+  return put_byte(SOFT_RESET);       // Send soft reset command & return status
 }
 
 
@@ -230,55 +215,55 @@ uint8_t sht_handler::reset(void) {
  ******************************************************************************/
 
 // Write byte to sensor and check for acknowledge
-uint8_t sht_handler::putByte(uint8_t value) {
+uint8_t sht_handler::put_byte(uint8_t value) {
   uint8_t mask, i;
   uint8_t error = 0;
-  pinMode(_pinData, OUTPUT);        // Set data line to output mode
+  pinMode(data_pin, OUTPUT);        // Set data line to output mode
   mask = 0x80;                      // Bit mask to transmit MSB first
   for (i = 8; i > 0; i--) {
-    digitalWrite(_pinData, value & mask);
+    digitalWrite(data_pin, value & mask);
     PULSE_SHORT;
-    digitalWrite(_pinClock, HIGH);  // Generate clock pulse
+    digitalWrite(clock_pin, HIGH);  // Generate clock pulse
     PULSE_LONG;
-    digitalWrite(_pinClock, LOW);
+    digitalWrite(clock_pin, LOW);
     PULSE_SHORT;
     mask >>= 1;                     // Shift mask for next data bit
   }
-  pinMode(_pinData, INPUT);         // Return data line to input mode
+  pinMode(data_pin, INPUT);         // Return data line to input mode
 #ifdef DATA_PU
-  digitalWrite(_pinData, DATA_PU);  // Restore internal pullup state
+  digitalWrite(data_pin, DATA_PU);  // Restore internal pullup state
 #endif
-  digitalWrite(_pinClock, HIGH);    // Clock #9 for ACK
+  digitalWrite(clock_pin, HIGH);    // Clock #9 for ACK
   PULSE_LONG;
-  if (digitalRead(_pinData))        // Verify ACK ('0') received from sensor
+  if (digitalRead(data_pin))        // Verify ACK ('0') received from sensor
     error = S_Err_NoACK;
   PULSE_SHORT;
-  digitalWrite(_pinClock, LOW);     // Finish with clock in low state
+  digitalWrite(clock_pin, LOW);     // Finish with clock in low state
   return error;
 }
 
 // Read byte from sensor and send acknowledge if "ack" is true
-uint8_t sht_handler::getByte(bool ack) {
+uint8_t sht_handler::get_byte(bool ack) {
   uint8_t i;
   uint8_t result = 0;
   for (i = 8; i > 0; i--) {
     result <<= 1;                   // Shift received bits towards MSB
-    digitalWrite(_pinClock, HIGH);  // Generate clock pulse
+    digitalWrite(clock_pin, HIGH);  // Generate clock pulse
     PULSE_SHORT;
-    result |= digitalRead(_pinData);  // Merge next bit into LSB position
-    digitalWrite(_pinClock, LOW);
+    result |= digitalRead(data_pin);  // Merge next bit into LSB position
+    digitalWrite(clock_pin, LOW);
     PULSE_SHORT;
   }
-  pinMode(_pinData, OUTPUT);
-  digitalWrite(_pinData, !ack);     // Assert ACK ('0') if ack == 1
+  pinMode(data_pin, OUTPUT);
+  digitalWrite(data_pin, !ack);     // Assert ACK ('0') if ack == 1
   PULSE_SHORT;
-  digitalWrite(_pinClock, HIGH);    // Clock #9 for ACK / noACK
+  digitalWrite(clock_pin, HIGH);    // Clock #9 for ACK / noACK
   PULSE_LONG;
-  digitalWrite(_pinClock, LOW);     // Finish with clock in low state
+  digitalWrite(clock_pin, LOW);     // Finish with clock in low state
   PULSE_SHORT;
-  pinMode(_pinData, INPUT);         // Return data line to input mode
+  pinMode(data_pin, INPUT);         // Return data line to input mode
 #ifdef DATA_PU
-  digitalWrite(_pinData, DATA_PU);  // Restore internal pullup state
+  digitalWrite(data_pin, DATA_PU);  // Restore internal pullup state
 #endif
   return result;
 }
@@ -296,23 +281,23 @@ uint8_t sht_handler::getByte(bool ack) {
 //           ___     ___
 // SCK : ___|   |___|   |______
 void sht_handler::startTransmission(void) {
-  digitalWrite(_pinData, HIGH);  // Set data register high before turning on
-  pinMode(_pinData, OUTPUT);     // output driver (avoid possible low pulse)
+  digitalWrite(data_pin, HIGH);  // Set data register high before turning on
+  pinMode(data_pin, OUTPUT);     // output driver (avoid possible low pulse)
   PULSE_SHORT;
-  digitalWrite(_pinClock, HIGH);
+  digitalWrite(clock_pin, HIGH);
   PULSE_SHORT;
-  digitalWrite(_pinData, LOW);
+  digitalWrite(data_pin, LOW);
   PULSE_SHORT;
-  digitalWrite(_pinClock, LOW);
+  digitalWrite(clock_pin, LOW);
   PULSE_LONG;
-  digitalWrite(_pinClock, HIGH);
+  digitalWrite(clock_pin, HIGH);
   PULSE_SHORT;
-  digitalWrite(_pinData, HIGH);
+  digitalWrite(data_pin, HIGH);
   PULSE_SHORT;
-  digitalWrite(_pinClock, LOW);
+  digitalWrite(clock_pin, LOW);
   PULSE_SHORT;
   // Unnecessary here since putByte always follows startTransmission
-//  pinMode(_pinData, INPUT);
+//  pinMode(data_pin, INPUT);
 }
 
 // Communication link reset
@@ -323,13 +308,13 @@ void sht_handler::startTransmission(void) {
 // SCK : __| |__| |__| |__| |__| |__| |__| |__| |__| |______|   |___|   |______
 void sht_handler::resetConnection(void) {
   uint8_t i;
-  digitalWrite(_pinData, HIGH);  // Set data register high before turning on
-  pinMode(_pinData, OUTPUT);     // output driver (avoid possible low pulse)
+  digitalWrite(data_pin, HIGH);  // Set data register high before turning on
+  pinMode(data_pin, OUTPUT);     // output driver (avoid possible low pulse)
   PULSE_LONG;
   for (i = 0; i < 9; i++) {
-    digitalWrite(_pinClock, HIGH);
+    digitalWrite(clock_pin, HIGH);
     PULSE_LONG;
-    digitalWrite(_pinClock, LOW);
+    digitalWrite(clock_pin, LOW);
     PULSE_LONG;
   }
   startTransmission();
@@ -341,32 +326,31 @@ void sht_handler::resetConnection(void) {
  ******************************************************************************/
 
 // Calculates temperature in degrees C from raw sensor data
-float sht_handler::calcTemp(uint16_t rawData) {
+float sht_handler::calc_t(uint16_t raw_data) {
   if (_stat_reg & LOW_RES)
-    return D1 + D2l * (float) rawData;
+    return D1 + D2l * (float) raw_data;
   else
-    return D1 + D2h * (float) rawData;
+    return D1 + D2h * (float) raw_data;
 }
 
 // Calculates relative humidity from raw sensor data
 //   (with temperature compensation)
-float sht_handler::calcHumi(uint16_t rawData, float temp) {
+float sht_handler::calc_rh(uint16_t raw_data, float temp) {
   float humi;
   if (_stat_reg & LOW_RES) {
-    humi = C1 + C2l * rawData + C3l * rawData * rawData;
-    humi = (temp - 25.0) * (T1 + T2l * rawData) + humi;
+    humi = C1 + C2l * raw_data + C3l * raw_data * raw_data;
+    humi = (temp - 25.0) * (T1 + T2l * raw_data) + humi;
   } else {
-    humi = C1 + C2h * rawData + C3h * rawData * rawData;
-    humi = (temp - 25.0) * (T1 + T2h * rawData) + humi;
+    humi = C1 + C2h * raw_data + C3h * raw_data * raw_data;
+    humi = (temp - 25.0) * (T1 + T2h * raw_data) + humi;
   }
   if (humi > 100.0) humi = 100.0;
   if (humi < 0.1) humi = 0.1;
   return humi;
 }
 
-#ifdef CRC_ENA
 // Calculate CRC for a single byte
-void sht_handler::calcCRC(uint8_t value, uint8_t *crc) {
+void sht_handler::calc_crc(uint8_t value, uint8_t *crc) {
   const uint8_t POLY = 0x31;   // Polynomial: x**8 + x**5 + x**4 + 1
   uint8_t i;
   *crc ^= value;
@@ -388,4 +372,3 @@ uint8_t sht_handler::bitrev(uint8_t value) {
   }
   return result;
 }
-#endif
