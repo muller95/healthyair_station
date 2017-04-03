@@ -24,7 +24,7 @@
   #include <wiringPi.h>
 
 
-#include "Sensirion.h"
+#include "sht_handler.h"
 
 
 /******************************************************************************
@@ -70,7 +70,7 @@ const bool ACK    = true;
  * Constructors
  ******************************************************************************/
 
-Sensirion::Sensirion(uint8_t dataPin, uint8_t clockPin) {
+sht_handler::sht_handler(uint8_t dataPin, uint8_t clockPin) {
   // Initialize private storage for library functions
   _pinData = dataPin;
   _pinClock = clockPin;
@@ -92,7 +92,7 @@ Sensirion::Sensirion(uint8_t dataPin, uint8_t clockPin) {
  ******************************************************************************/
 
 // All-in-one (blocking): Returns temperature, humidity, & dewpoint
-uint8_t Sensirion::measure(float *temp, float *humi, float *dew) {
+uint8_t sht_handler::measure(float *temp, float *humi) {
   uint16_t rawData;
   uint8_t error;
   pinMode(_pinData, OUTPUT);
@@ -103,12 +103,11 @@ uint8_t Sensirion::measure(float *temp, float *humi, float *dew) {
   if ((error = measHumi(&rawData)))
     return error;
   *humi = calcHumi(rawData, *temp);
-  *dew = calcDewpoint(*humi, *temp);
   return 0 ;
 }
 
 // Initiate measurement.  If blocking, wait for result
-uint8_t Sensirion::meas(uint8_t cmd, uint16_t *result, bool block) {
+uint8_t sht_handler::meas(uint8_t cmd, uint16_t *result, bool block) {
   uint8_t error, i;
 #ifdef CRC_ENA
   _crc = bitrev(_stat_reg & SR_MASK);  // Initialize CRC calculation
@@ -142,7 +141,7 @@ uint8_t Sensirion::meas(uint8_t cmd, uint16_t *result, bool block) {
 
 // Check if non-blocking measurement has completed
 // Non-zero return indicates complete (with or without error)
-uint8_t Sensirion::measRdy(void) {
+uint8_t sht_handler::measRdy(void) {
   uint8_t error = 0;
   if (_presult == NULL)             // Already done?
     return S_Meas_Rdy;
@@ -156,7 +155,7 @@ uint8_t Sensirion::measRdy(void) {
 }
 
 // Get measurement result from sensor (plus CRC, if enabled)
-uint8_t Sensirion::getResult(uint16_t *result) {
+uint8_t sht_handler::getResult(uint16_t *result) {
   uint8_t val;
 #ifdef CRC_ENA
   val = getByte(ACK);
@@ -179,7 +178,7 @@ uint8_t Sensirion::getResult(uint16_t *result) {
 }
 
 // Write status register
-uint8_t Sensirion::writeSR(uint8_t value) {
+uint8_t sht_handler::writeSR(uint8_t value) {
   uint8_t error;
   value &= SR_MASK;                 // Mask off unwritable bits
   _stat_reg = value;                // Save local copy
@@ -190,7 +189,7 @@ uint8_t Sensirion::writeSR(uint8_t value) {
 }
 
 // Read status register
-uint8_t Sensirion::readSR(uint8_t *result) {
+uint8_t sht_handler::readSR(uint8_t *result) {
   uint8_t val;
   uint8_t error = 0;
 #ifdef CRC_ENA
@@ -219,7 +218,7 @@ uint8_t Sensirion::readSR(uint8_t *result) {
 
 // Public reset function
 // Note: Soft reset returns sensor status register to default values
-uint8_t Sensirion::reset(void) {
+uint8_t sht_handler::reset(void) {
   _stat_reg = 0x00;                 // Sensor status register default state
   resetConnection();                // Reset communication link with sensor
   return putByte(SOFT_RESET);       // Send soft reset command & return status
@@ -227,11 +226,11 @@ uint8_t Sensirion::reset(void) {
 
 
 /******************************************************************************
- * Sensirion data communication
+ * sht_handler data communication
  ******************************************************************************/
 
 // Write byte to sensor and check for acknowledge
-uint8_t Sensirion::putByte(uint8_t value) {
+uint8_t sht_handler::putByte(uint8_t value) {
   uint8_t mask, i;
   uint8_t error = 0;
   pinMode(_pinData, OUTPUT);        // Set data line to output mode
@@ -259,7 +258,7 @@ uint8_t Sensirion::putByte(uint8_t value) {
 }
 
 // Read byte from sensor and send acknowledge if "ack" is true
-uint8_t Sensirion::getByte(bool ack) {
+uint8_t sht_handler::getByte(bool ack) {
   uint8_t i;
   uint8_t result = 0;
   for (i = 8; i > 0; i--) {
@@ -286,17 +285,17 @@ uint8_t Sensirion::getByte(bool ack) {
 
 
 /******************************************************************************
- * Sensirion signaling
+ * sht_handler signaling
  ******************************************************************************/
 
-// Generate Sensirion-specific transmission start sequence
-// This is where Sensirion does not conform to the I2C standard and is
+// Generate sht_handler-specific transmission start sequence
+// This is where sht_handler does not conform to the I2C standard and is
 // the main reason why the AVR TWI hardware support can not be used.
 //       _____         ________
 // DATA:      |_______|
 //           ___     ___
 // SCK : ___|   |___|   |______
-void Sensirion::startTransmission(void) {
+void sht_handler::startTransmission(void) {
   digitalWrite(_pinData, HIGH);  // Set data register high before turning on
   pinMode(_pinData, OUTPUT);     // output driver (avoid possible low pulse)
   PULSE_SHORT;
@@ -322,7 +321,7 @@ void Sensirion::startTransmission(void) {
 // DATA:                                                      |_______|
 //          _    _    _    _    _    _    _    _    _        ___     ___
 // SCK : __| |__| |__| |__| |__| |__| |__| |__| |__| |______|   |___|   |______
-void Sensirion::resetConnection(void) {
+void sht_handler::resetConnection(void) {
   uint8_t i;
   digitalWrite(_pinData, HIGH);  // Set data register high before turning on
   pinMode(_pinData, OUTPUT);     // output driver (avoid possible low pulse)
@@ -342,7 +341,7 @@ void Sensirion::resetConnection(void) {
  ******************************************************************************/
 
 // Calculates temperature in degrees C from raw sensor data
-float Sensirion::calcTemp(uint16_t rawData) {
+float sht_handler::calcTemp(uint16_t rawData) {
   if (_stat_reg & LOW_RES)
     return D1 + D2l * (float) rawData;
   else
@@ -351,7 +350,7 @@ float Sensirion::calcTemp(uint16_t rawData) {
 
 // Calculates relative humidity from raw sensor data
 //   (with temperature compensation)
-float Sensirion::calcHumi(uint16_t rawData, float temp) {
+float sht_handler::calcHumi(uint16_t rawData, float temp) {
   float humi;
   if (_stat_reg & LOW_RES) {
     humi = C1 + C2l * rawData + C3l * rawData * rawData;
@@ -365,16 +364,9 @@ float Sensirion::calcHumi(uint16_t rawData, float temp) {
   return humi;
 }
 
-// Calculates dew point in degrees C
-float Sensirion::calcDewpoint(float humi, float temp) {
-  float k;
-  k = log(humi/100) + (17.62 * temp) / (243.12 + temp);
-  return 243.12 * k / (17.62 - k);
-}
-
 #ifdef CRC_ENA
 // Calculate CRC for a single byte
-void Sensirion::calcCRC(uint8_t value, uint8_t *crc) {
+void sht_handler::calcCRC(uint8_t value, uint8_t *crc) {
   const uint8_t POLY = 0x31;   // Polynomial: x**8 + x**5 + x**4 + 1
   uint8_t i;
   *crc ^= value;
@@ -387,7 +379,7 @@ void Sensirion::calcCRC(uint8_t value, uint8_t *crc) {
 }
 
 // Bit-reverse a byte (for CRC calculations)
-uint8_t Sensirion::bitrev(uint8_t value) {
+uint8_t sht_handler::bitrev(uint8_t value) {
   uint8_t i;
   uint8_t result = 0;
   for (i = 8; i > 0; i--) {
