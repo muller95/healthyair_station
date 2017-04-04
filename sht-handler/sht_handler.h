@@ -15,14 +15,12 @@
 #define PULSE_SHORT delayMicroseconds(1)
 
 // Useful macros
-#define measTemp(result)  meas(TEMP, result, BLOCK)
-#define measHumi(result)  meas(HUMI, result, BLOCK)
+#define measTemp(result)  meas(TEMP, result)
+#define measHumi(result)  meas(HUMI, result)
 
 // User constants
-const uint8_t TEMP     =     0;
-const uint8_t HUMI     =     1;
-const bool    BLOCK    =  true;
-const bool    NONBLOCK = false;
+const uint8_t T     =     0;
+const uint8_t RH     =     1;
 
 // Status register bit definitions
 const uint8_t LOW_RES  =  0x01;  // 12-bit Temp / 8-bit RH (vs. 14 / 12)
@@ -41,27 +39,24 @@ class sht_handler
   private:
     uint8_t data_pin;
     uint8_t clock_pin;
-    uint16_t *_presult;
-    uint8_t _stat_reg;
-    uint8_t _crc;
+    uint8_t sr;
+    uint8_t crc;
     uint8_t get_result(uint16_t *result);
     uint8_t put_byte(uint8_t value);
     uint8_t get_byte(bool ack);
-    void startTransmission(void);
-    void resetConnection(void);
+    void transmission_start(void);
     void calc_crc(uint8_t value, uint8_t *crc);
     uint8_t bitrev(uint8_t value);
 
   public:
     sht_handler(uint8_t data_pin, uint8_t clock_pin);
-    uint8_t measure(float *temp, float *humi);   
-    uint8_t meas(uint8_t cmd, uint16_t *result, bool block);
-    uint8_t measRdy(void);
-    uint8_t writeSR(uint8_t value);
-    uint8_t readSR(uint8_t *result);
+    uint8_t measure(double *t, double *rh);   
+    uint8_t request_raw(uint8_t cmd, uint16_t *result);
+    uint8_t write_sr(uint8_t value);
+    uint8_t read_sr(uint8_t *result);
     uint8_t reset(void);
-    float calc_t(uint16_t raw_data);
-    float calc_rh(uint16_t raw_data, float temp);
+    double calc_t(uint16_t raw_data);
+    double calc_rh(uint16_t raw_data, double temp);
 };
 
 #endif 

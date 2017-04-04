@@ -12,8 +12,7 @@ int
 main()
 {
 	const uint8_t data_pin  =  5, clock_pin =  4;
-
-	float t, rh;
+	double t, rh;
 	
 	sht_handler sht = sht_handler(data_pin, clock_pin);
 	if (wiringPiSetup() != 0)
