@@ -10,8 +10,10 @@ int
 main()
 {
 	co2_handler co2;
-	if (wiringPiSetup() != 0)
+	if (wiringPiSetup() != 0) {
+		cout << "ERR" << endl << "Error setuping wiring Pi" << endl;
 		return 1;
+	}
 		
 	int32_t ppm = co2.query("/dev/ttyS1");
 	if (co2.get_last_error() == "")		

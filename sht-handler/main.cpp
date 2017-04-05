@@ -1,12 +1,11 @@
-#include <errno.h>
+#include <iostream>
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 #include <wiringPi.h>
 #include <wiringSerial.h>
 
 #include "sht_handler.h"
 
+using namespace std;
 
 int 
 main()
@@ -15,16 +14,18 @@ main()
 	double t, rh;
 	
 	sht_handler sht = sht_handler(data_pin, clock_pin);
-	if (wiringPiSetup() != 0)
+	if (wiringPiSetup() != 0) {
+		cout << "ERR" << endl << "Error setuping wiring Pi" << endl;
 		return 1;
-	
-	
-	while (1) {
-		sht.measure(&t, &rh);
-		printf("%f %f\n", t, rh);
-		fflush(stdout);
-		delay(1000);
 	}
+	
+	
+	sht.measure(&t, &rh);
+
+	if (sht.get_last_error() == "")
+		cout << "OK" << endl << t << " " << rh << endl;
+	else 
+		cout << "ERR" << endl << sht.get_last_error() << endl;
 
 	return 0;
 }

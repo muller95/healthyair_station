@@ -49,7 +49,7 @@ sht_handler::set_error_msg(uint8_t error)
 {
 	switch (error) {
 		case EOK: {
-			error_msg = "OK";
+			error_msg = "";
 			break;
 		}
 
