@@ -3,34 +3,40 @@
 
 #include "co2_handler.h"
 
+uint8_t
+co2_handler::calc_check(uint8_t *data)
+{
+	uint8_t check = 0;
+	for (int i = 1; i < 8; i++)
+		check += data[i];
+
+	return ~check + 1;
+}
+
 int32_t 
 co2_handler::query(const char *serial_path)
 {
 	int i;
 	int fd, avail;
-	int resp[7];
-	char request[] = {0xFE, 0x4, 0x0, 0x3, 0x0, 0x1, 0xD5, 0xC5};
+	uint8_t response[9];
+	uint8_t request[] = { 0xFF, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 	int32_t ppm = 0;	
 
 	error_msg = "";
 	if ((fd = serialOpen(serial_path, 9600)) < 0) {
 		error_msg = string("Unable to open serial device: ");
 		error_msg += string(strerror(errno));
-		return 1;
+		return -1;
 	}
 
+	request[8] = this->calc_check(request);
 	for (i = 0; i < 7; i++)
-		resp[i] = 0;
+		response[i] = 0;
 
-/*	while ((avail = serialDataAvail(fd)) < 7) {
-		for (i = 0; i < 8; i++)
-			serialPutchar(fd, request[i]);
-		delay(100);
-	}*/
-		
-	for (i = 0; i < 8; i++)
+	for (i = 0; i < 9; i++)
 		serialPutchar(fd, request[i]);
-	while ((avail = serialDataAvail(fd)) < 7) {
+
+	while ((avail = serialDataAvail(fd)) < 9) {
 		delay(100);
 	}
 	
@@ -40,9 +46,14 @@ co2_handler::query(const char *serial_path)
 		error_msg += string(strerror(errno));
 	}
 	
-	for (i = 0; i < 7; i++) 
-		resp[i] = serialGetchar(fd);
-	ppm = (resp[3] << 8) | resp[4];
+	for (i = 0; i < 9; i++) 
+		response[i] = serialGetchar(fd);
+	ppm = (response[2] << 8) | response[3];
+
+	if (response[8] != this->calc_check(response)) {
+		error_msg = string("Check value error");
+		return -1;
+	}
 
 
 	serialClose(fd);	

@@ -1,4 +1,4 @@
 wpa_passphrase ssis password generates wpa_supplicant config
-sudo wpa_supplicant -B -i wlan0 -c config/wifi.conf runs
+sudo wpa_supplicant -B -i wlan0 -c configs/wifi.conf runs
 wpa_supplicant for wlan0 interface
 sudo dhcpcd wlan0 gets ip for wlan0

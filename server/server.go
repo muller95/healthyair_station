@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 var serverErrors map[string]string
@@ -50,9 +51,13 @@ func main() {
 	if outputCO2[0] == "OK" && outputSHT[0] == "OK" {
 		shtMeasures := strings.Split(outputSHT[1], " ")
 		fmt.Println(shtMeasures)
+
+		date := time.Now();
+		dateStr := date.Format("2006-02-01 03:04:05")
+
 		reqData := url.Values{"email": {userEmail}, "passwd": {userPassword},
 			"stname": {stationName}, "t": {shtMeasures[0]}, "rh": {shtMeasures[1]},
-			"co2": {outputCO2[1]}}
+			"co2": {outputCO2[1]}, "datetime" : {dateStr}}
 		reqBody := bytes.NewBufferString(reqData.Encode())
 		fmt.Println(reqData.Encode())
 		resp, err := http.Post(domainName, "application/x-www-form-urlencoded", reqBody)

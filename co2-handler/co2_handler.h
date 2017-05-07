@@ -15,6 +15,7 @@ public:
 
 private:
 	string error_msg;
+	uint8_t calc_check(uint8_t *data);
 };
 
 #endif
