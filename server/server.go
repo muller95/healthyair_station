@@ -21,6 +21,9 @@ var stationName = "station"
 func main() {
 
 	config := readConfig()
+
+	go bluetoothContext(&config)
+
 	var out bytes.Buffer
 
 	cmd := exec.Command("co2-handler")
