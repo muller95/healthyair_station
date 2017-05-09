@@ -8,6 +8,6 @@ cd ../sht-handler
 make
 cd ../
 cd server
-go build server.go
+go build server.go config.go
 
 

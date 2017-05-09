@@ -19,6 +19,8 @@ var userPassword = "Warcraft123Ab"
 var stationName = "station"
 
 func main() {
+
+	config := readConfig()
 	var out bytes.Buffer
 
 	cmd := exec.Command("co2-handler")
@@ -55,8 +57,8 @@ func main() {
 		date := time.Now();
 		dateStr := date.Format("2006-02-01 03:04:05")
 
-		reqData := url.Values{"email": {userEmail}, "passwd": {userPassword},
-			"stname": {stationName}, "t": {shtMeasures[0]}, "rh": {shtMeasures[1]},
+		reqData := url.Values{"email": {config.UserEmail}, "passwd": {config.UserPasswd},
+			"stname": {config.StationName}, "t": {shtMeasures[0]}, "rh": {shtMeasures[1]},
 			"co2": {outputCO2[1]}, "datetime" : {dateStr}}
 		reqBody := bytes.NewBufferString(reqData.Encode())
 		fmt.Println(reqData.Encode())
