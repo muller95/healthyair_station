@@ -4,9 +4,8 @@ import (
 	"log"
 )
 
-//#cgo CFLAGS: -I../bluetooth/include
-//#cgo LDFLAGS: -L../bluetooth/ -lbluetooth
-//#include <bluetooth.h>
+//#cgo LDFLAGS: -L/usr/lib -lbluetooth
+//#include <bluetooth/bluetooth.h>
 import "C"
 
 func bluetoothContext(config *config) {

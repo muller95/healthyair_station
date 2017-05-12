@@ -1,14 +1,10 @@
 #include <wiringPi.h>
 #include <wiringSerial.h>
 
-enum BL_ERRNO {
-	BL_ESUCCESS,
-	BL_EWPINIT,
-	BL_ESEROPEN,
-};
+#include "bluetooth.h"
 
+//enum BL_ERRNO bl_errno = BL_ESUCCESS;
 
-enum BL_ERRNO bl_errno = BL_ESUCCESS;
 
 int
 bl_init(char *serial) 

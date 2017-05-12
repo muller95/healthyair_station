@@ -1,4 +1,4 @@
-CC=gcc
+CC=clang
 CFLAGS=-Wall -shared -fPIC
 LDFLAGS=-lwiringPi
 BIN=libbluetooth.so
