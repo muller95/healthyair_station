@@ -4,19 +4,14 @@ import (
 	"log"
 )
 
-// #cgo LDFLAGS: -lwiringPi
-// #include <wiringPi.h>
+//#cgo CFLAGS: -I../bluetooth/include
+//#cgo LDFLAGS: -L../bluetooth/ -lbluetooth
+//#include <bluetooth.h>
 import "C"
 
-
 func bluetoothContext(config *config) {
-	if (C.wiringPiSetup() != 0) {
-		log.Println("@ERR SETUPING WIRING PI")
-		return
-	}
-
-	fd := C.serialOpen("/dev/ttyS1", 9600)
-	if (fd < 0) {
-		log.Println("@ERR OPENING SERIAL ")
+	fd := int(C.bl_init(C.CString("/dev/ttyS2")))
+	if fd < 0 {
+		log.Println("@ERR INIT BLUETOOTH ", C.bl_errno) 		
 	}
 }

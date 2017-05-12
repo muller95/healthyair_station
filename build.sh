@@ -7,6 +7,9 @@ make
 cd ../sht-handler
 make
 cd ../
+cd bluetooth
+make
+cd ..
 cd server
 go build server.go config.go bluetooth.go
 
