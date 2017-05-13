@@ -13,7 +13,7 @@ sudo cp sht-handler /bin
 cd ../
 cd bluetooth
 make
-sudo cp libbluetooth.so /usr/local/lib/
+sudo cp libbluetooth.so /usr/lib/
 sudo mkdir /usr/include/bluetooth
 sudo cp bluetooth.h /usr/include/bluetooth/
 

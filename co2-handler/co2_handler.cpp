@@ -30,7 +30,7 @@ co2_handler::query(const char *serial_path)
 	}
 
 	request[8] = this->calc_check(request);
-	for (i = 0; i < 7; i++)
+	for (i = 0; i < 9; i++)
 		response[i] = 0;
 
 	for (i = 0; i < 9; i++)
