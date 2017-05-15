@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <string.h>
 #include <strings.h>
 #include <stdio.h>
@@ -83,9 +84,48 @@ bl_name(int fd, char *name)
 
 		if (strcmp(response, "OKsetname") == 0)
 			return 0;
-		printf("%s\n", response);
 	}
 	
+	if (strlen(response) > 0)
+		bl_errno = BL_EAT;
+	else
+		bl_errno = BL_ETIMEOUT;
+
+	return -1;
+}
+
+int
+bl_pin(int fd, char *pin)
+{
+	char cmd[MAX_BUF_SIZE], response[MAX_BUF_SIZE];
+	
+	if (strlen(pin) != 4) {
+		bl_errno = BL_EINVAL;
+		return -1;
+	}
+	
+	for (int i = 0; i < 4; i++)
+		if (!isdigit(pin[i])) {
+			bl_errno = BL_EINVAL;
+			return -1;
+		}
+	
+	
+	bzero(cmd, MAX_BUF_SIZE);
+	sprintf(cmd, "AT+PIN%s", pin);
+	for (int i = 0; i < strlen(cmd); i++)
+		serialPutchar(fd, cmd[i]);
+
+	bzero(response, MAX_BUF_SIZE);
+	for (int i = 0, cycles = 0; cycles < TIMEOUT_CYCLES; cycles++) {
+		delay(DELAY_TIME);
+		while (serialDataAvail(fd) > 0)
+			response[i++] = serialGetchar(fd);
+	
+		if (strcmp(response, "OKsetPIN") == 0)
+			return 0;
+	}
+		
 	if (strlen(response) > 0)
 		bl_errno = BL_EAT;
 	else

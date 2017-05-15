@@ -52,7 +52,7 @@ func main() {
 			serverErrors["sht-handler"] = outputSHT[1]
 		}
 
-		fmt.Println(outputCO2, outputSHT)
+//		fmt.Println(outputCO2, outputSHT)
 
 		if outputCO2[0] == "OK" && outputSHT[0] == "OK" {
 			shtMeasures := strings.Split(outputSHT[1], " ")
@@ -65,7 +65,7 @@ func main() {
 				"stname": {config.StationName}, "t": {shtMeasures[0]}, "rh": {shtMeasures[1]},
 				"co2": {outputCO2[1]}, "datetime" : {dateStr}}
 			reqBody := bytes.NewBufferString(reqData.Encode())
-			fmt.Println(reqData.Encode())
+//			fmt.Println(reqData.Encode())
 			resp, err := http.Post(domainName, "application/x-www-form-urlencoded", reqBody)
 			if err != nil {
 				log.Println(err)
@@ -73,11 +73,11 @@ func main() {
 
 			if err == nil {
 				defer resp.Body.Close()
-				respData, err := ioutil.ReadAll(resp.Body)
+				_, err := ioutil.ReadAll(resp.Body)
 				if err != nil {
 					log.Println(err)
 				}
-				fmt.Println(string(respData[:]))
+//				fmt.Println(string(respData[:]))
 			}
 		}
 	}

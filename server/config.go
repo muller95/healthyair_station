@@ -10,7 +10,7 @@ type config struct {
 	UserEmail string
 	UserPasswd string
 	StationName string
-	StationPasswd string
+	StationPin string
 }
 
 func readConfig() config {
@@ -19,7 +19,7 @@ func readConfig() config {
 	marshaled, err := ioutil.ReadFile("/etc/station.conf")
 	if err != nil {
 		config.StationName = "Healthy Station"
-		config.StationPasswd = "1234"
+		config.StationPin = "1234"
 		marshaled, _ = json.Marshal(config)
 		ioutil.WriteFile("/etc/station.conf", marshaled, os.ModePerm)
 	} else {

@@ -10,11 +10,11 @@ enum BL_ERRNO {
 	BL_EINVAL
 };
 
-
 extern enum BL_ERRNO bl_errno;
 
 int bl_init(char *serial);
 int bl_ok(int fd);
 int bl_name(int fd, char *name);
+int bl_pin(int fd, char *pin);
 
 #endif 
